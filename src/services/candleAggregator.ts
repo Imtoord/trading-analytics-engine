@@ -35,7 +35,7 @@ class CandleAggregator extends EventEmitter {
 
     // Close old candle if new bucket
     if (prev && prev.time !== bucketTime) {
-      this.emit('candle:close', { symbol, timeframe: tf, candle: this._toCandle(prev) });
+      this.emit('candle:close', { symbol, timeframe: tf, candle: this._toCandle(prev, tf) });
     }
 
     // Open new or update existing
@@ -48,13 +48,20 @@ class CandleAggregator extends EventEmitter {
       prev.volume += volume;
     }
 
-    this.emit('candle:update', { symbol, timeframe: tf, candle: this._toCandle(tfMap.get(tf)!) });
+    this.emit('candle:update', { symbol, timeframe: tf, candle: this._toCandle(tfMap.get(tf)!, tf) });
   }
 
-  private _toCandle(c: OpenCandle): Candle & { time: any } {
-    // Convert Unix timestamp to date string for LightweightCharts
-    const date = new Date(c.time * 1000).toISOString().split('T')[0];
-    return { time: date, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume };
+  private _toCandle(c: OpenCandle, tf: Timeframe): Candle {
+    let time: string | number;
+    if (tf === '1d' || tf === '1w') {
+      time = new Date(c.time * 1000).toISOString().split('T')[0]; // YYYY-MM-DD
+    } else if (tf === '1M') {
+      const d = new Date(c.time * 1000);
+      time = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`; // YYYY-MM-01
+    } else {
+      time = c.time; // Unix seconds for intraday
+    }
+    return { time, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume };
   }
 
   getOpenCandle(symbol: string, tf: Timeframe): OpenCandle | null {

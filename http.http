@@ -1,0 +1,112 @@
+@baseUrl = http://localhost:3000
+
+### ============================================================
+### HEALTH
+### ============================================================
+
+### Server health check
+GET {{baseUrl}}/health
+
+
+### ============================================================
+### MARKET
+### ============================================================
+
+### Get candle history (default 1Y, 1d)
+GET {{baseUrl}}/api/history?symbol=EURUSD&range=1Y&timeframe=1d
+
+###
+
+### Get candle history (custom range & timeframe)
+GET {{baseUrl}}/api/history?symbol=AAPL&range=6M&timeframe=1h
+
+###
+
+### Get current quote
+GET {{baseUrl}}/api/quote?symbol=EURUSD
+
+###
+
+### Get all technical indicators
+GET {{baseUrl}}/api/indicators?symbol=EURUSD&range=1Y
+
+###
+
+### Get trading signals (RSI strategy)
+GET {{baseUrl}}/api/signals?symbol=EURUSD&range=1Y&strategy=rsi
+
+###
+
+### Get trading signals (MACD strategy)
+GET {{baseUrl}}/api/signals?symbol=EURUSD&range=1Y&strategy=macd
+
+###
+
+### Get trading signals (Bollinger strategy)
+GET {{baseUrl}}/api/signals?symbol=EURUSD&range=1Y&strategy=bollinger
+
+###
+
+### Search symbols
+GET {{baseUrl}}/api/search?query=EUR
+
+
+### ============================================================
+### BACKTEST
+### ============================================================
+
+### Get all available strategies
+GET {{baseUrl}}/api/backtest/strategies
+
+###
+
+### Run a single backtest (RSI strategy)
+POST {{baseUrl}}/api/backtest
+Content-Type: application/json
+
+{
+  "symbol": "EURUSD",
+  "timeframe": "1d",
+  "range": "1Y",
+  "strategy": "rsi",
+  "initialCapital": 10000,
+  "positionSize": 0.1,
+  "stopLoss": 0.02,
+  "takeProfit": 0.04,
+  "commission": 0.001
+}
+
+###
+
+### Run a single backtest (MACD strategy)
+POST {{baseUrl}}/api/backtest
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "timeframe": "1d",
+  "range": "1Y",
+  "strategy": "macd",
+  "initialCapital": 10000,
+  "positionSize": 0.1,
+  "stopLoss": 0.02,
+  "takeProfit": 0.04,
+  "commission": 0.001
+}
+
+###
+
+### Compare multiple strategies
+POST {{baseUrl}}/api/backtest/compare
+Content-Type: application/json
+
+{
+  "symbol": "EURUSD",
+  "range": "1Y",
+  "strategies": ["rsi", "macd", "bollinger", "sma", "ema"],
+  "initialCapital": 10000,
+  "positionSize": 0.1,
+  "stopLoss": 0.02,
+  "takeProfit": 0.04,
+  "commission": 0.001
+}

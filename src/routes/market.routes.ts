@@ -11,10 +11,11 @@ const router = Router();
 // GET /api/history?symbol=EURUSD&range=1Y
 router.get('/history', async (req: Request, res: Response) => {
   try {
-    const symbol = (req.query.symbol as string || 'EURUSD').toUpperCase();
-    const range  = req.query.range  as string || '1Y';
+    const symbol    = (req.query.symbol    as string || 'EURUSD').toUpperCase();
+    const range     = req.query.range      as string || '1Y';
+    const timeframe = req.query.timeframe  as string || '1d';
     const { from, to } = buildDateRange(range);
-    const candles = await fmpProvider.getHistory(symbol, from, to);
+    const candles = await fmpProvider.getHistory(symbol, from, to, timeframe);
     res.json({ symbol, candles, count: candles.length });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

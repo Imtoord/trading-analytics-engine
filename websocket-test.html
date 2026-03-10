@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WS Tester — Trading Backend</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    /* ── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --surface2: #22263a;
+      --border:   #2e3248;
+      --text:     #c9d1d9;
+      --muted:    #6b7280;
+      --accent:   #3b82f6;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --orange:   #f97316;
+      --yellow:   #eab308;
+      --purple:   #a855f7;
+      --radius:   8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 48px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── Top Bar ───────────────────────────────────── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      gap: 12px;
+    }
+
+    .topbar-left  { display: flex; align-items: center; gap: 12px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    .app-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: .3px;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      transition: background .3s;
+      flex-shrink: 0;
+    }
+    .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+    #status-label { font-size: 12px; color: var(--muted); }
+
+    .url-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      font-family: monospace;
+      font-size: 12px;
+      width: 220px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .url-input:focus { border-color: var(--accent); }
+
+    /* ── Layout ────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ───────────────────────────────────── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Cards ─────────────────────────────────────── */
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card-header:hover { background: rgba(255,255,255,.03); }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .card-body.collapsed { display: none; }
+
+    /* ── Form ──────────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 4px; }
+
+    label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input[type="text"], select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+      transition: border-color .2s;
+    }
+
+    input[type="text"]:focus,
+    select:focus { border-color: var(--accent); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* ── Buttons ───────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter .15s, transform .1s;
+      white-space: nowrap;
+    }
+
+    .btn:hover  { filter: brightness(1.15); }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: none; }
+
+    .btn-primary  { background: var(--accent); color: #fff; }
+    .btn-success  { background: #166534; color: var(--green); border: 1px solid #15803d44; }
+    .btn-danger   { background: #7f1d1d; color: var(--red);   border: 1px solid #dc262644; }
+    .btn-warning  { background: #78350f; color: var(--orange); border: 1px solid #ea580c44; }
+    .btn-ghost    { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-full     { width: 100%; }
+    .btn-sm       { padding: 4px 10px; font-size: 11px; }
+    .btn-row      { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* ── Active Subscriptions ──────────────────────── */
+    .subs-list { display: flex; flex-direction: column; gap: 4px; min-height: 24px; }
+
+    .sub-tag {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    .sub-tag-name { color: var(--green); }
+
+    .sub-tag-remove {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .sub-tag-remove:hover { color: var(--red); }
+
+    .empty-msg { color: var(--muted); font-size: 11px; font-style: italic; }
+
+    /* ── Live Ticks ────────────────────────────────── */
+    .tick-grid { display: flex; flex-direction: column; gap: 4px; }
+
+    .tick-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-family: monospace;
+    }
+
+    .tick-symbol { font-size: 11px; font-weight: 700; color: var(--text); }
+    .tick-price  { font-size: 13px; font-weight: 700; }
+    .tick-price.up   { color: var(--green); }
+    .tick-price.down { color: var(--red); }
+    .tick-ts { font-size: 10px; color: var(--muted); }
+
+    /* ── Log Panel ─────────────────────────────────── */
+    .log-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .log-toolbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .log-toolbar-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+
+    .filter-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    .filter-btn {
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .filter-btn:hover      { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active     { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .filter-btn.active-in  { background: var(--green);  border-color: var(--green);  color: #000; }
+    .filter-btn.active-out { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .filter-btn.active-err { background: var(--red);    border-color: var(--red);    color: #fff; }
+
+    .log-count {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .log-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 16px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      background: var(--bg);
+    }
+
+    .log-body::-webkit-scrollbar { width: 5px; }
+    .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .log-entry {
+      display: flex;
+      gap: 10px;
+      padding: 2px 0;
+      border-radius: 4px;
+      transition: background .1s;
+    }
+
+    .log-entry:hover { background: rgba(255,255,255,.03); }
+    .log-entry.hidden { display: none; }
+
+    .log-time  { color: var(--muted); flex-shrink: 0; font-size: 10px; margin-top: 3px; }
+    .log-badge {
+      flex-shrink: 0;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-top: 2px;
+      height: fit-content;
+      letter-spacing: .3px;
+    }
+
+    .badge-in   { background: #14532d; color: var(--green); }
+    .badge-out  { background: #1e3a5f; color: #60a5fa; }
+    .badge-err  { background: #7f1d1d; color: var(--red); }
+    .badge-info { background: var(--surface2); color: var(--muted); }
+
+    .log-msg { flex: 1; color: var(--text); word-break: break-all; }
+    .log-msg pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-top: 4px;
+      overflow-x: auto;
+      font-size: 11px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .log-msg .key   { color: #60a5fa; }
+    .log-msg .str   { color: #86efac; }
+    .log-msg .num   { color: #fca5a5; }
+    .log-msg .bool  { color: var(--orange); }
+
+    /* ── Divider ───────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
+
+    /* ── Scrollbar global ──────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Top Bar ────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="app-title">WS Tester</span>
+    <span class="badge">Socket.io</span>
+    <span class="badge">Trading Backend</span>
+  </div>
+  <div class="topbar-right">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-label">Not connected</span>
+    <input class="url-input" id="url" value="http://localhost:3000" spellcheck="false" />
+    <button class="btn btn-success btn-sm" id="btn-connect"    onclick="connect()">Connect</button>
+    <button class="btn btn-danger  btn-sm" id="btn-disconnect" onclick="disconnect()" disabled>Disconnect</button>
+  </div>
+</header>
+
+<!-- ── Main Layout ────────────────────────────────── -->
+<div class="layout">
+
+  <!-- ── Sidebar ──────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <!-- SUBSCRIBE -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">Subscribe</span>
+        <span style="color:var(--muted);font-size:16px">−</span>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Symbol</label>
+          <input type="text" id="sub-symbol" value="EURUSD" />
+        </div>
+        <div class="field-row" style="color:var(--muted);font-size:10px;font-family:monospace;padding:2px 0">
+          <span>Timeframe: <strong style="color:var(--text)">1d</strong> (fixed)</span>
+          <span>Range: <strong style="color:var(--text)">ALL</strong> (fixed)</span>
+        </div>
+        <button class="btn btn-success btn-full" onclick="subscribe()">+ subscribe</button>
+      </div>
+    </div>
+
+    <!-- CHANGE TIMEFRAME -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">Change Timeframe</span>
+        <span style="color:var(--muted);font-size:16px">−</span>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Symbol</label>
+          <input type="text" id="tf-symbol" value="EURUSD" />
+        </div>
+        <div class="field">
+          <label>New Timeframe</label>
+          <select id="tf-new">
+            <option value="1m">1min</option>
+            <option value="5m">5min</option>
+            <option value="1h">1h</option>
+            <option value="4h" selected>4h</option>
+            <option value="8h">8h</option>
+            <option value="1d">1d</option>
+            <option value="1w">1w</option>
+          </select>
+        </div>
+        <div style="color:var(--muted);font-size:10px;font-family:monospace;padding:2px 0">
+          Range: <strong style="color:var(--text)">ALL</strong> (fixed)
+        </div>
+        <button class="btn btn-primary btn-full" onclick="changeTf()">→ change_tf</button>
+      </div>
+    </div>
+
+    <!-- UNSUBSCRIBE -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">Unsubscribe</span>
+        <span style="color:var(--muted);font-size:16px">−</span>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Symbol</label>
+          <input type="text" id="unsub-symbol" value="EURUSD" />
+        </div>
+        <div class="field">
+          <label>Timeframe</label>
+          <select id="unsub-tf">
+            <option>1m</option><option>5m</option><option>15m</option>
+            <option>1h</option><option>4h</option><option selected>1d</option>
+          </select>
+        </div>
+        <button class="btn btn-warning btn-full" onclick="unsubscribe()">→ unsubscribe</button>
+      </div>
+    </div>
+
+    <!-- ACTIVE SUBSCRIPTIONS -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">Active Subscriptions</span>
+        <span style="color:var(--muted);font-size:16px">−</span>
+      </div>
+      <div class="card-body">
+        <div class="subs-list" id="subs-list">
+          <span class="empty-msg">No active subscriptions</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE TICKS -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <span class="card-title">Live Prices</span>
+        <span style="color:var(--muted);font-size:16px">−</span>
+      </div>
+      <div class="card-body">
+        <div class="tick-grid" id="tick-grid">
+          <span class="empty-msg">Waiting for ticks...</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Log Panel ─────────────────────────────────── -->
+  <div class="log-panel">
+    <div class="log-toolbar">
+      <span class="log-toolbar-title">Event Log</span>
+      <div class="filter-btns">
+        <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',  this)">ALL</button>
+        <button class="filter-btn"        data-filter="in"   onclick="setFilter('in',   this)">← IN</button>
+        <button class="filter-btn"        data-filter="out"  onclick="setFilter('out',  this)">→ OUT</button>
+        <button class="filter-btn"        data-filter="err"  onclick="setFilter('err',  this)">ERR</button>
+        <button class="filter-btn"        data-filter="info" onclick="setFilter('info', this)">INFO</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0;margin-left:4px">
+        <input type="checkbox" id="pretty-toggle" checked onchange="togglePretty()" />
+        Pretty JSON
+      </label>
+      <span class="log-count" id="log-count">0 events</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-body" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ─────────────────────────────────────────
+  let socket       = null;
+  let logCount     = 0;
+  let activeFilter = 'all';
+  let prettyJson   = true;
+  const subscriptions = new Set();
+  const lastTick      = new Map();
+  const lastPrice     = new Map();
+
+  // ── Card Toggle ───────────────────────────────────
+  function toggleCard(header) {
+    const body   = header.nextElementSibling;
+    const icon   = header.querySelector('span:last-child');
+    const hidden = body.classList.toggle('collapsed');
+    icon.textContent = hidden ? '+' : '−';
+  }
+
+  // ── Log ───────────────────────────────────────────
+  function log(type, label, summary, detail = null) {
+    const el    = document.getElementById('log');
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${activeFilter !== 'all' && activeFilter !== type ? 'hidden' : ''}`;
+    entry.dataset.type = type;
+
+    const time  = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const badge = type === 'in'   ? 'badge-in'
+                : type === 'out'  ? 'badge-out'
+                : type === 'err'  ? 'badge-err'
+                :                   'badge-info';
+    const badgeLabel = type === 'in' ? '← IN' : type === 'out' ? '→ OUT' : type === 'err' ? 'ERR' : 'INFO';
+
+    let detailHtml = '';
+    if (detail !== null) {
+      const rendered = prettyJson && typeof detail === 'object'
+        ? syntaxHighlight(JSON.stringify(detail, null, 2))
+        : JSON.stringify(detail);
+      detailHtml = `<pre>${rendered}</pre>`;
+    }
+
+    entry.innerHTML = `
+      <span class="log-time">${time}</span>
+      <span class="log-badge ${badge}">${badgeLabel}</span>
+      <span class="log-msg"><strong>${label}</strong> ${summary}${detailHtml}</span>
+    `;
+    el.appendChild(entry);
+    el.scrollTop = el.scrollHeight;
+
+    logCount++;
+    document.getElementById('log-count').textContent = `${logCount} events`;
+  }
+
+  function syntaxHighlight(json) {
+    return json
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (m) => {
+        if (/^"/.test(m))   return /:$/.test(m) ? `<span class="key">${m}</span>` : `<span class="str">${m}</span>`;
+        if (/true|false/.test(m)) return `<span class="bool">${m}</span>`;
+        return `<span class="num">${m}</span>`;
+      });
+  }
+
+  // ── Filter ────────────────────────────────────────
+  function setFilter(filter, btn) {
+    activeFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'active-in', 'active-out', 'active-err'));
+    btn.classList.add('active');
+
+    document.querySelectorAll('.log-entry').forEach(entry => {
+      entry.classList.toggle('hidden', filter !== 'all' && entry.dataset.type !== filter);
+    });
+  }
+
+  function togglePretty() {
+    prettyJson = document.getElementById('pretty-toggle').checked;
+  }
+
+  function clearLog() {
+    document.getElementById('log').innerHTML = '';
+    logCount = 0;
+    document.getElementById('log-count').textContent = '0 events';
+  }
+
+  // ── Connection ────────────────────────────────────
+  function setConnected(connected) {
+    document.getElementById('status-dot').className    = `status-dot ${connected ? 'connected' : ''}`;
+    document.getElementById('status-label').textContent = connected ? 'Connected' : 'Not connected';
+    document.getElementById('btn-connect').disabled    = connected;
+    document.getElementById('btn-disconnect').disabled = !connected;
+  }
+
+  function connect() {
+    if (socket) socket.disconnect();
+
+    const url = document.getElementById('url').value.trim();
+    socket = io(url, { transports: ['websocket'] });
+
+    socket.on('connect', () => {
+      setConnected(true);
+      log('info', 'connect', `id = ${socket.id}`);
+    });
+
+    socket.on('disconnect', (reason) => {
+      setConnected(false);
+      subscriptions.clear();
+      renderSubs();
+      log('err', 'disconnect', reason);
+    });
+
+    socket.on('connect_error', (e) => {
+      log('err', 'connect_error', e.message);
+    });
+
+    // ── Server → Client ──────────────────────────────
+    socket.on('history', (data) => {
+      const keys = Object.keys(data.indicators || {}).join(', ') || '—';
+      log('in', 'history', `${data.symbol} ${data.timeframe} — ${data.candles?.length ?? 0} candles`, {
+        symbol: data.symbol, timeframe: data.timeframe,
+        candlesCount: data.candles?.length,
+        indicatorKeys: Object.keys(data.indicators || {}),
+        firstCandle: data.candles?.[0],
+        lastCandle:  data.candles?.[data.candles.length - 1],
+      });
+    });
+
+    socket.on('candle', (data) => {
+      log('in', 'candle', `${data.symbol} ${data.timeframe}  o=${data.candle?.open}  h=${data.candle?.high}  l=${data.candle?.low}  c=${data.candle?.close}`);
+    });
+
+    socket.on('indicators', (data) => {
+      log('in', 'indicators', `${data.symbol} ${data.timeframe} — refreshed`, {
+        symbol: data.symbol, timeframe: data.timeframe,
+        keys: Object.keys(data.indicators || {}),
+      });
+    });
+
+    socket.on('tick', (data) => {
+      const prev = lastPrice.get(data.symbol);
+      lastPrice.set(data.symbol, data.price);
+      updateTick(data, prev);
+      log('in', 'tick', `${data.symbol}  price=${data.price}  vol=${data.volume}`);
+    });
+
+    socket.on('error_msg', (data) => {
+      log('err', 'error_msg', `${data.symbol}: ${data.message}`);
+    });
+  }
+
+  function disconnect() {
+    if (!socket) return;
+    socket.disconnect();
+    socket = null;
+    subscriptions.clear();
+    renderSubs();
+  }
+
+  // ── Events ────────────────────────────────────────
+  function subscribe() {
+    if (!socket) return log('err', 'subscribe', 'Not connected');
+    const symbol = document.getElementById('sub-symbol').value.toUpperCase().trim();
+    if (!symbol) return;
+
+    const payload = { symbol, timeframe: '1d', range: 'ALL' };
+    socket.emit('subscribe', payload);
+    log('out', 'subscribe', '', payload);
+
+    subscriptions.add(`${symbol}:1d`);
+    renderSubs();
+
+    // Sync unsub and change-tf fields
+    document.getElementById('unsub-symbol').value = symbol;
+    document.getElementById('unsub-tf').value      = '1d';
+    document.getElementById('tf-symbol').value     = symbol;
+  }
+
+  function changeTf() {
+    if (!socket) return log('err', 'change_tf', 'Not connected');
+    const symbol    = document.getElementById('tf-symbol').value.toUpperCase().trim();
+    const timeframe = document.getElementById('tf-new').value;
+    if (!symbol) return;
+
+    const payload = { symbol, timeframe, range: 'ALL' };
+    socket.emit('change_tf', payload);
+    log('out', 'change_tf', '', payload);
+
+    for (const sub of [...subscriptions]) {
+      if (sub.startsWith(`${symbol}:`)) subscriptions.delete(sub);
+    }
+    subscriptions.add(`${symbol}:${timeframe}`);
+    renderSubs();
+  }
+
+  function unsubscribe() {
+    if (!socket) return log('err', 'unsubscribe', 'Not connected');
+    const payload = {
+      symbol:    document.getElementById('unsub-symbol').value.toUpperCase().trim(),
+      timeframe: document.getElementById('unsub-tf').value,
+    };
+    if (!payload.symbol) return;
+    socket.emit('unsubscribe', payload);
+    log('out', 'unsubscribe', '', payload);
+
+    subscriptions.delete(`${payload.symbol}:${payload.timeframe}`);
+    renderSubs();
+  }
+
+  // ── Subscriptions UI ─────────────────────────────
+  function renderSubs() {
+    const el = document.getElementById('subs-list');
+    if (!subscriptions.size) {
+      el.innerHTML = '<span class="empty-msg">No active subscriptions</span>';
+      return;
+    }
+    el.innerHTML = [...subscriptions].map(sub => {
+      const [sym, tf] = sub.split(':');
+      return `
+        <div class="sub-tag">
+          <span class="sub-tag-name">${sym} <span style="color:var(--muted)">${tf}</span></span>
+          <button class="sub-tag-remove" onclick="quickUnsub('${sym}','${tf}')" title="Unsubscribe">×</button>
+        </div>`;
+    }).join('');
+  }
+
+  function quickUnsub(symbol, timeframe) {
+    if (!socket) return;
+    socket.emit('unsubscribe', { symbol, timeframe });
+    log('out', 'unsubscribe', `quick — ${symbol} ${timeframe}`);
+    subscriptions.delete(`${symbol}:${timeframe}`);
+    renderSubs();
+  }
+
+  // ── Live Ticks UI ─────────────────────────────────
+  function updateTick({ symbol, price, timestamp }, prevPrice) {
+    const el  = document.getElementById('tick-grid');
+    const dir = prevPrice == null ? '' : price > prevPrice ? 'up' : price < prevPrice ? 'down' : '';
+    const ts  = new Date(timestamp).toLocaleTimeString('en-GB', { hour12: false });
+
+    let row = document.getElementById(`tick-${symbol}`);
+    if (!row) {
+      // Remove placeholder
+      const ph = el.querySelector('.empty-msg');
+      if (ph) ph.remove();
+
+      row = document.createElement('div');
+      row.className = 'tick-row';
+      row.id        = `tick-${symbol}`;
+      el.appendChild(row);
+    }
+
+    row.innerHTML = `
+      <span class="tick-symbol">${symbol}</span>
+      <span class="tick-price ${dir}">${price.toFixed(5)}</span>
+      <span class="tick-ts">${ts}</span>
+    `;
+  }
+
+  // ── Init ──────────────────────────────────────────
+  renderSubs();
+</script>
+</body>
+</html>
