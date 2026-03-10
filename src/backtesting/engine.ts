@@ -66,7 +66,7 @@ export class BacktestEngine {
           trades.push({
             id: position.id, symbol: config.symbol, direction,
             entryTime, entryPrice,
-            exitTime: candle.time, exitPrice, exitReason, pnl,
+            exitTime: String(candle.time), exitPrice, exitReason, pnl,
             pnlPct: +pnlPct.toFixed(3), commission: +comm.toFixed(2),
             holdingBars: i - candles.findIndex(c => c.time === entryTime),
             signal,
@@ -86,7 +86,7 @@ export class BacktestEngine {
           id:         ++tradeId,
           direction:  sig.signal === 'BUY' ? 'LONG' : 'SHORT',
           entryPrice: candle.close,
-          entryTime:  candle.time,
+          entryTime:  String(candle.time),
           size,
           signal:     sig.reason,
         };
@@ -103,7 +103,7 @@ export class BacktestEngine {
       peakEquity        = Math.max(peakEquity, totalEquity);
       const drawdown    = ((peakEquity - totalEquity) / peakEquity) * 100;
 
-      equity.push({ time: candle.time, value: +totalEquity.toFixed(2), drawdown: +drawdown.toFixed(2) });
+      equity.push({ time: String(candle.time), value: +totalEquity.toFixed(2), drawdown: +drawdown.toFixed(2) });
     }
 
     // ── Close any open position at end ─────────────────
@@ -120,7 +120,7 @@ export class BacktestEngine {
         id: position.id, symbol: config.symbol,
         direction: position.direction,
         entryTime: position.entryTime, entryPrice: position.entryPrice,
-        exitTime: last.time, exitPrice: last.close,
+        exitTime: String(last.time), exitPrice: last.close,
         exitReason: 'END_OF_DATA', pnl, pnlPct: +pnlPct.toFixed(3),
         commission: +comm.toFixed(2),
         holdingBars: candles.length - candles.findIndex(c => c.time === position!.entryTime),

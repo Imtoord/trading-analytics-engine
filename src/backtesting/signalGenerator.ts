@@ -11,7 +11,7 @@ import { aroon }          from '../indicators/aroon';
 export type SignalType = 'BUY' | 'SELL' | 'HOLD';
 
 export interface BarSignal {
-  time:   string;
+  time:   string | number;
   signal: SignalType;
   reason: string;
 }

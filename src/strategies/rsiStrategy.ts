@@ -30,7 +30,7 @@ export class RSIStrategy {
       }
 
       if (signal !== 'HOLD') {
-        signals.push({ symbol, timeframe, time: candle.time, signal, reason, price: candle.close });
+        signals.push({ symbol, timeframe, time: String(candle.time), signal, reason, price: candle.close });
       }
     }
     return signals;

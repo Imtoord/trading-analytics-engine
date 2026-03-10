@@ -23,9 +23,9 @@ export class SMACrossoverStrategy {
       if (!candle) continue;
 
       if (fastPrev <= slowPrev && fastCurr > slowCurr) {
-        signals.push({ symbol, timeframe, time, signal: 'BUY',  reason: `SMA${this.fastPeriod} crossed above SMA${this.slowPeriod}`, price: candle.close });
+        signals.push({ symbol, timeframe, time: String(time), signal: 'BUY',  reason: `SMA${this.fastPeriod} crossed above SMA${this.slowPeriod}`, price: candle.close });
       } else if (fastPrev >= slowPrev && fastCurr < slowCurr) {
-        signals.push({ symbol, timeframe, time, signal: 'SELL', reason: `SMA${this.fastPeriod} crossed below SMA${this.slowPeriod}`, price: candle.close });
+        signals.push({ symbol, timeframe, time: String(time), signal: 'SELL', reason: `SMA${this.fastPeriod} crossed below SMA${this.slowPeriod}`, price: candle.close });
       }
     }
     return signals;

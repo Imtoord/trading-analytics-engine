@@ -19,7 +19,7 @@ export function macd(candles: Candle[], fast = 12, slow = 26, signal = 9): MACDR
       macdLine.push({ time, value: +(fastMap.get(time)! - sv).toFixed(5) });
     }
   }
-  macdLine.sort((a, b) => a.time.localeCompare(b.time));
+  macdLine.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
   const signalLine = emaValues(macdLine, signal);
   const sigMap     = new Map(signalLine.map(d => [d.time, d.value]));

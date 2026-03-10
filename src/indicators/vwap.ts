@@ -25,7 +25,7 @@ export function vwap(candles: Candle[]): IndicatorPoint[] {
 
   for (let i = 0; i < candles.length; i++) {
     const c   = candles[i];
-    const day = c.time.substring(0, 10); // "YYYY-MM-DD"
+    const day = String(c.time).substring(0, 10); // "YYYY-MM-DD"
 
     // Reset at new trading day
     if (day !== currentDay) {
