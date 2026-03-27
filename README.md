@@ -80,3 +80,36 @@ Integrate with real-time market data providers.
  "sharpeRatio": 1.32,
  "maxDrawdown": -0.18
 }
+signal values
+
+1 = buy
+-1 = sell
+0 = neutral
+
+---
+
+src
+
+ indicators
+  sma.ts
+  ema.ts
+  rsi.ts
+  macd.ts
+  bollinger.ts
+
+ strategies
+  rsiStrategy.ts
+  macdStrategy.ts
+
+ services
+  backtest.service.ts
+  signal.service.ts
+
+ types
+  candle.ts
+  signal.ts
+
+ utils
+  math.ts
+
+ config
