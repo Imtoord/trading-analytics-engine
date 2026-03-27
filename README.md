@@ -79,7 +79,7 @@ Integrate with real-time market data providers.
  "winRate": 0.64,
  "sharpeRatio": 1.32,
  "maxDrawdown": -0.18
-}
+}```
 signal values
 
 1 = buy
